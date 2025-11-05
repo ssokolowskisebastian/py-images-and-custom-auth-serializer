@@ -1,6 +1,10 @@
+import os
+import uuid
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.conf import settings
+from django.template.defaultfilters import slugify
 
 
 class CinemaHall(models.Model):
@@ -35,12 +39,26 @@ class Actor(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
+def movie_image_file_path(instance: "Movie", filename: str):
+    """
+    Generate file path for new movie image upload.
+    Format: 'uploads/movies/<slugified-title>-<uuid><ext>'
+    Example: 'uploads/movies/the-dark-knight-3fa85f64-5717-4562-b3fc-2c963f66afa6.jpg'
+    """
+    ext = os.path.splitext(filename)[1]           # Get file extension (e.g., '.jpg')
+    title_slug = slugify(instance.title)          # Convert movie title to URL-safe text
+    uuid_slug = uuid.uuid4()                      # Unique identifier
+    return f"uploads/movies/{title_slug}-{uuid_slug}{ext}"
+
+
 class Movie(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     duration = models.IntegerField()
     genres = models.ManyToManyField(Genre)
     actors = models.ManyToManyField(Actor)
+    image = models.ImageField(upload_to=movie_image_file_path, null=True,
+                              blank=True)
 
     class Meta:
         ordering = ["title"]
